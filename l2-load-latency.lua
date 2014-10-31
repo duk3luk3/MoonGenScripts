@@ -126,10 +126,8 @@ function timerSlave(txPort, rxPort, txQueue, rxQueue)
 	for v, k in hist:samples() do
 		printf("HistSample,delay=%f,count=%d", v.k, v.v)
 	end
-	local samples = hist.samples
-	local sum = hist.sum
+	local samples, sum, average = hist:totals()
 	local lowerQuart, median, upperQuart = hist:quartiles()
-	local average = sum / samples
 	printf("HistStats,numSamples=%d,sum=%f,average=%f,lowerQuart=%f,median=%f,upperQuart=%f",samples,sum,average,lowerQuart,median,upperQuart)
 	io.stdout:flush()
 end
