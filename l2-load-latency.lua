@@ -55,7 +55,8 @@ function loadSlave(port, queue)
 		data[13] = 0x34
 	end)
 	local MAX_BURST_SIZE = 31
-	local lastPrint = dpdk.getTime()
+	local startTime = dpdk.getTime()
+	local lastPrint = startTime
 	local totalSent = 0
 	local lastTotal = 0
 	local lastSent = 0
@@ -65,13 +66,15 @@ function loadSlave(port, queue)
 		totalSent = totalSent + queue:send(bufs)
 		local time = dpdk.getTime()
 		if time - lastPrint > 1 then
-			local mpps = (totalSent - lastTotal) / (time - lastPrint) / 10^6
-			printf("Sent,packets=%d,rate=%f", totalSent, mpps)
+			local mbits = (totalSent - lastTotal) / (time - lastPrint) / 10^6
+			printf("Sent,packets=%d,rate=%f", totalSent, mbits)
 			lastTotal = totalSent
 			lastPrint = time
 		end
 	end
-	printf("TotalSent,packets=%d", totalSent)
+	local time = dpdk.getTime()
+	local mbits = (totalSent) / (time - startTime) / 10^6
+	printf("TotalSent,packets=%d,rate=%f", totalSent, mbits)
 end
 
 function counterSlave(port)
