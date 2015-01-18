@@ -120,7 +120,10 @@ function timerSlave(txPort, rxPort, txQueue, rxQueue)
 			local rx = rxQueue:tryRecv(rxBufs, 10000)
 			if rx > 0 then
 				local seq1 = ts.readSeq(rxBufs[1])
-				local seq2 = ts.readSeq(rxBufs[2])
+				local seq2 = nil
+				if rx > 1 then
+				  seq2 = ts.readSeq(rxBufs[2])
+				end
 				if seq1 == ptpseq or seq2 == ptpseq then
 				  -- for i = -- TODO: loop over packets and check for 0x0400 ol_flag 
 				  local delay = (rxQueue:getTimestamp() - tx) * 6.4
