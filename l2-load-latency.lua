@@ -125,6 +125,7 @@ function timerSlave(txPort, rxPort, txQueue, rxQueue)
 				  if bit.bor(rxBufs[i].ol_flags, dpdk.PKT_RX_IEEE1588_TMST) ~= 0 then
 					nummatched = nummatched + 1
 					tsi = i
+				  end
 				end
 				local delay = (rxQueue:getTimestamp() - tx) * 6.4
 				local seq = ts.readSeq(rxBufs[tsi])
