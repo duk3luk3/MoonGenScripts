@@ -119,17 +119,18 @@ function timerSlave(txPort, rxPort, txQueue, rxQueue)
 			-- sent was successful, try to get the packet back (max. 10 ms wait time before we assume the packet is lost)
 			local rx = rxQueue:tryRecv(rxBufs, 10000)
 			if rx > 0 then
-				local seq1 = ts.readSeq(rxBufs[1])
-				local seq2 = nil
-				if rx > 1 then
-				  seq2 = ts.readSeq(rxBufs[2])
+				local nummatched = 0
+				local tsi = 0
+				for i = 1, rx do
+				  if bit.bor(rxBufs[i].ol_flags, dpdk.PKT_RX_IEEE1588_TMST) ~= 0 then
+					nummatched = nummatched + 1
+					tsi = i
 				end
-				if seq1 == ptpseq or seq2 == ptpseq then
-				  -- for i = -- TODO: loop over packets and check for 0x0400 ol_flag 
-				  local delay = (rxQueue:getTimestamp() - tx) * 6.4
-				  if delay > 0 and delay < 100000000 then
-					  hist:update(delay)
-				  end
+				local delay = (rxQueue:getTimestamp() - tx) * 6.4
+				local seq = ts.readSeq(rxBufs[tsi])
+
+				if nummatched == 1 and seq == ptpseq and delay > 0 and delay < 100000000 then
+					hist:update(delay)
 				end
 				rxBufs:freeAll()
 			end
