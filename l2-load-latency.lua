@@ -104,9 +104,11 @@ function timerSlave(txPort, rxPort, txQueue, rxQueue)
 	rxQueue:enableTimestamps()
 	local hist = histo:create()
 	dpdk.sleepMillis(4000)
+    local ptpseq = 0
 	while dpdk.running() do
+        ptpseq = (ptpseq + 1) % 4000000000
 		buf:fill(60)
-		ts.fillL2Packet(buf[1])
+		ts.fillL2Packet(buf[1], ptpseq)
 		-- sync clocks and send
 		ts.syncClocks(txDev, rxDev)
 		txQueue:send(buf)
@@ -117,10 +119,14 @@ function timerSlave(txPort, rxPort, txQueue, rxQueue)
 			-- sent was successful, try to get the packet back (max. 10 ms wait time before we assume the packet is lost)
 			local rx = rxQueue:tryRecv(rxBufs, 10000)
 			if rx > 0 then
-				-- for i = -- TODO: loop over packets and check for 0x0400 ol_flag 
-				local delay = (rxQueue:getTimestamp() - tx) * 6.4
-				if delay > 0 and delay < 100000000 then
-					hist:update(delay)
+				local seq1 = ts.readSeq(rxBufs[1])
+				local seq2 = ts.readSeq(rxBufs[2])
+				if seq1 == ptpseq or seq2 == ptpseq then
+				  -- for i = -- TODO: loop over packets and check for 0x0400 ol_flag 
+				  local delay = (rxQueue:getTimestamp() - tx) * 6.4
+				  if delay > 0 and delay < 100000000 then
+					  hist:update(delay)
+				  end
 				end
 				rxBufs:freeAll()
 			end
