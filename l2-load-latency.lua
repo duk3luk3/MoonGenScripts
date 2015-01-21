@@ -104,9 +104,10 @@ function timerSlave(txPort, rxPort, txQueue, rxQueue)
 	rxQueue:enableTimestamps()
 	local hist = histo:create()
 	dpdk.sleepMillis(4000)
-    local ptpseq = 0
+	local ptpseq = 0
+	local timestamps = {}
 	while dpdk.running() do
-        ptpseq = (ptpseq + 1) % 4000000000
+		ptpseq = (ptpseq + 1) % 1000000
 		buf:fill(60)
 		ts.fillL2Packet(buf[1], ptpseq)
 		-- sync clocks and send
@@ -115,6 +116,7 @@ function timerSlave(txPort, rxPort, txQueue, rxQueue)
 		-- increment the wait time when using large packets or slower links
 		local tx = txQueue:getTimestamp(100)
 		if tx then
+			timestamps[ptpseq] = tx
 			dpdk.sleepMicros(500) -- minimum latency to limit the packet rate
 			-- sent was successful, try to get the packet back (max. 10 ms wait time before we assume the packet is lost)
 			local rx = rxQueue:tryRecv(rxBufs, 10000)
@@ -122,16 +124,18 @@ function timerSlave(txPort, rxPort, txQueue, rxQueue)
 				local nummatched = 0
 				local tsi = 0
 				for i = 1, rx do
-				  if bit.bor(rxBufs[i].ol_flags, dpdk.PKT_RX_IEEE1588_TMST) ~= 0 then
-					nummatched = nummatched + 1
-					tsi = i
-				  end
+					if bit.bor(rxBufs[i].ol_flags, dpdk.PKT_RX_IEEE1588_TMST) ~= 0 then
+						nummatched = nummatched + 1
+						tsi = i
+					end
 				end
-				local delay = (rxQueue:getTimestamp() - tx) * 6.4
 				local seq = ts.readSeq(rxBufs[tsi])
-
-				if nummatched == 1 and seq == ptpseq and delay > 0 and delay < 100000000 then
-					hist:update(delay)
+				if timestamps[seq] then
+					local delay = (rxQueue:getTimestamp() - timestamps[seq]) * 6.4
+					timestamps[seq] = nil
+					if nummatched == 1 and delay > 0 and delay < 100000000 then
+						hist:update(delay)
+					end
 				end
 				rxBufs:freeAll()
 			end
