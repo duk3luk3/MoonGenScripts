@@ -111,7 +111,8 @@ function timerSlave(txPort, rxPort, txQueue, rxQueue)
 		buf:fill(60)
 		ts.fillL2Packet(buf[1], ptpseq)
 		-- sync clocks and send
-		ts.syncClocks(txDev, rxDev)
+		-- dont sync clocks, not needed here and causes artifacts from clock reset
+		--ts.syncClocks(txDev, rxDev)
 		txQueue:send(buf)
 		-- increment the wait time when using large packets or slower links
 		local tx = txQueue:getTimestamp(100)
