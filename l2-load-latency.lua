@@ -66,15 +66,15 @@ function loadSlave(port, queue)
 		totalSent = totalSent + queue:send(bufs)
 		local time = dpdk.getTime()
 		if time - lastPrint > 1 then
-			local mbits = (totalSent - lastTotal) / (time - lastPrint) / 10^6
-			printf("Sent,packets=%d,rate=%f", totalSent, mbits)
+			local mpps = (totalSent - lastTotal) / (time - lastPrint) / 10^6
+			printf("Sent,packets=%d,rate=%f", totalSent, mpps)
 			lastTotal = totalSent
 			lastPrint = time
 		end
 	end
 	local time = dpdk.getTime()
-	local mbits = (totalSent) / (time - startTime) / 10^6
-	printf("TotalSent,packets=%d,rate=%f", totalSent, mbits)
+	local mpps = (totalSent) / (time - startTime) / 10^6
+	printf("TotalSent,packets=%d,rate=%f", totalSent, mpps)
 end
 
 function counterSlave(port)
