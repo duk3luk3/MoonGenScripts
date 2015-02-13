@@ -78,6 +78,7 @@ function timerSlave(txDev, rxDev, txQueue, rxQueue)
 		-- increment the wait time when using large packets or slower links
 		local tx = txQueue:getTimestamp(100)
 		if tx then
+			timestamps[ptpseq] = tx
 			dpdk.sleepMicros(500) -- minimum latency to limit the packet rate
 			-- sent was successful, try to get the packet back (max. 10 ms wait time before we assume the packet is lost)
 			local rx = rxQueue:tryRecv(rxBufs, 10000)
