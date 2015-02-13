@@ -27,6 +27,7 @@ function loadSlave(dev, rxDev, queue, rate, size)
 	end)
 	rxDev:l2Filter(0x1234, filter.DROP)
 	local lastPrint = dpdk.getTime()
+	local startTime = lastPrint
 	local totalSent = 0
 	local lastTotal = 0
 	local lastSent = 0
@@ -52,8 +53,8 @@ function loadSlave(dev, rxDev, queue, rate, size)
 		end
 	end
 	local time = dpdk.getTime()
-	local mbits = (totalSent) / (time - startTime) / 10^6
-	printf("TotalSent,packets=%d,rate=%f", totalSent, mbits)
+	local mpps = (totalSent) / (time - startTime) / 10^6
+	printf("TotalSent,packets=%d,rate=%f", totalSent, mpps)
 	printf("TotalReceived,packets=%d", totalReceived)
 end
 
