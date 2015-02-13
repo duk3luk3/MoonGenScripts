@@ -67,6 +67,7 @@ function timerSlave(txDev, rxDev, txQueue, rxQueue)
 	local hist = histo:create()
 	dpdk.sleepMillis(4000)
 	local ptpseq = 0
+	local timestamps = {}
 	while dpdk.running() do
 		ptpseq = (ptpseq + 1) % 1000000
 		buf:fill(60)
