@@ -102,12 +102,13 @@ function timerSlave(txPort, rxPort, txQueue, rxQueue, size, numFlows)
 	-- wait one second, otherwise we might start timestamping before the load is applied
 	dpdk.sleepMillis(1000)
 	local counter = 0
-	local baseIP = 0x01020304
+	local baseIP = 0xc0a80101 -- 192.168.1.1
 	while dpdk.running() do
 		bufs:fill(size + 4)
 		local pkt = bufs[1]:getUdpPacket()
 		ts.fillPacket(bufs[1], 1234, size + 4)
 		pkt.ip.src:set(baseIP + counter)
+		pkt.ip.dst:set(0xc0a80102) -- 192.168.1.2
 		counter = (counter + 1) % numFlows
 		bufs:offloadUdpChecksums()
 		-- sync clocks and send
