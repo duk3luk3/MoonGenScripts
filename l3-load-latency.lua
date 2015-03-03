@@ -109,6 +109,8 @@ function timerSlave(txPort, rxPort, txQueue, rxQueue, size, numFlows)
 		bufs:fill(size + 4)
 		local pkt = bufs[1]:getUdpPacket()
 		ts.fillPacket(bufs[1], 1234, size + 4)
+		pkt.eth.src:setString("90:e2:ba:2c:cb:02") -- klaipeda eth-test1 MAC
+		pkt.eth.dst:setString("90:e2:ba:35:b5:81") -- tartu eth-test1 MAC
 		pkt.ip.src:set(baseIP + counter)
 		pkt.ip.dst:set(0xc0a80102) -- 192.168.1.2
 		counter = (counter + 1) % numFlows
