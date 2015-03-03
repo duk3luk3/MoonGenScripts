@@ -49,8 +49,8 @@ function loadSlave(port, queue, size, numFlows)
 		bufs:fill(size)
 		for i, buf in ipairs(bufs) do
 			local pkt = buf:getUdpPacket()
-			pkt.eth.src:set(0x90e2ba2ccb02) -- klaipeda eth-test1 MAC
-			pkt.eth.dst:set(0x90e2ba35b581) -- tartu eth-test1 MAC
+			pkt.eth.src:setString("90:e2:ba:2c:cb:02") -- klaipeda eth-test1 MAC
+			pkt.eth.dst:setString("90:e2:ba:35:b5:81") -- tartu eth-test1 MAC
 			pkt.ip.src:set(baseIP + counter)
 			pkt.ip.dst:set(0xc0a80102) -- 192.168.1.2
 			if numFlows <= 32 then
