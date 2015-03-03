@@ -5,6 +5,7 @@ local ts		= require "timestamping"
 local dpdkc		= require "dpdkc"
 local filter	= require "filter"
 local ffi		= require "ffi"
+local histo = require "histogram"
 
 function master(...)
 	local txPort, rxPort, rate, flows, size = tonumberall(...)
@@ -67,12 +68,16 @@ function loadSlave(port, queue, size, numFlows)
 		local time = dpdk.getTime()
 		if time - lastPrint > 1 then
 			local mpps = (totalSent - lastTotal) / (time - lastPrint) / 10^6
-			printf("Sent %d packets, current rate %.2f Mpps, %.2f MBit/s, %.2f MBit/s wire rate", totalSent, mpps, mpps * (size + 4) * 8, mpps * (size + 24) * 8)
+			--printf("Sent %d packets, current rate %.2f Mpps, %.2f MBit/s, %.2f MBit/s wire rate", totalSent, mpps, mpps * (size + 4) * 8, mpps * (size + 24) * 8)
+			printf("Sent,packets=%d,rate=%f", totalSent, mpps)
 			lastTotal = totalSent
 			lastPrint = time
 		end
 	end
-	printf("Sent %d packets", totalSent)
+	local time = dpdk.getTime()
+	local mpps = (totalSent) / (time - startTime) / 10^6
+	printf("TotalSent,packets=%d,rate=%f", totalSent, mpps)
+	--printf("Sent %d packets", totalSent)
 end
 
 function counterSlave(port)
@@ -84,9 +89,10 @@ function counterSlave(port)
 		local elapsed = dpdk.getTime() - time
 		local pkts = dev:getRxStats(port)
 		total = total + pkts
-		printf("Received %d packets, current rate %.2f Mpps", total, pkts / elapsed / 10^6)
+		--printf("Received %d packets, current rate %.2f Mpps", total, pkts / elapsed / 10^6)
+		printf("Received,packets=%d,rate=%f", total, pkts / elapsed / 10^6)
 	end
-	printf("Received %d packets", total)
+	printf("TotalReceived,packets=%d", total)
 end
 
 function timerSlave(txPort, rxPort, txQueue, rxQueue, size, numFlows)
@@ -100,7 +106,7 @@ function timerSlave(txPort, rxPort, txQueue, rxQueue, size, numFlows)
 	txQueue:enableTimestamps()
 	rxQueue:enableTimestamps(1234)
 	rxDev:filterTimestamps(rxQueue)
-	local hist = {}
+	local hist = histo:create()
 	-- wait one second, otherwise we might start timestamping before the load is applied
 	dpdk.sleepMillis(1000)
 	local counter = 0
@@ -134,7 +140,8 @@ function timerSlave(txPort, rxPort, txQueue, rxQueue, size, numFlows)
 				local delay = (rxQueue:getTimestamp() - tx) * 6.4
 				if numPkts == 1 then
 					if delay > 0 and delay < 100000000 then
-						hist[delay] = (hist[delay] or 0) + 1
+						--hist[delay] = (hist[delay] or 0) + 1
+						hist:update(delay)
 					end
 				end -- else: got more than one packet, so we got a problem
 				-- TODO: use sequence numbers in the packets to avoid bugs here
@@ -142,21 +149,12 @@ function timerSlave(txPort, rxPort, txQueue, rxQueue, size, numFlows)
 			end
 		end
 	end
-	local sortedHist = {}
-	for k, v in pairs(hist) do 
-		table.insert(sortedHist,  { k = k, v = v })
+	for v, k in hist:samples() do
+		printf("HistSample,delay=%f,count=%d", v.k, v.v)
 	end
-	local sum = 0
-	local samples = 0
-	table.sort(sortedHist, function(e1, e2) return e1.k < e2.k end)
-	print("Histogram:")
-	for _, v in ipairs(sortedHist) do
-		sum = sum + v.k * v.v
-		samples = samples + v.v
-		print(v.k, v.v)
-	end
-	print()
-	print("Average: " .. (sum / samples) .. " ns, " .. samples .. " samples")
-	print("----------------------------------------------")
+	local samples, sum, average = hist:totals()
+	local lowerQuart, median, upperQuart = hist:quartiles()
+	printf("HistStats,numSamples=%d,sum=%f,average=%f,lowerQuart=%f,median=%f,upperQuart=%f",samples,sum,average,lowerQuart,median,upperQuart)
+	io.stdout:flush()
 end
 
