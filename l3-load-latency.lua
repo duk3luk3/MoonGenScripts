@@ -13,7 +13,7 @@ function master(...)
 	end
 	flows = flows or 4
 	rate = rate or 2000
-	size = (size or 128) - 4
+	size = (size or 128)
 	local rxMempool = memory.createMemPool()
 	if txPort == rxPort then
 		txDev = device.config(txPort, rxMempool, 2, 2)
@@ -108,7 +108,7 @@ function timerSlave(txPort, rxPort, txQueue, rxQueue, size, numFlows)
 	while dpdk.running() do
 		bufs:fill(size + 4)
 		local pkt = bufs[1]:getUdpPacket()
-		ts.fillPacket(bufs[1], 1234, size + 4)
+		ts.fillPacket(bufs[1], 1234, size)
 		pkt.eth.src:setString("90:e2:ba:2c:cb:02") -- klaipeda eth-test1 MAC
 		pkt.eth.dst:setString("90:e2:ba:35:b5:81") -- tartu eth-test1 MAC
 		pkt.ip.src:set(baseIP + counter)
