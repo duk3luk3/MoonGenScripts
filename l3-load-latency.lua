@@ -13,10 +13,9 @@ function master(...)
 		errorf("usage: txPort rxPort [rate [flows [size]]]")
 	end
 	flows = flows or 4
-	rate = rate or 2000
+	rate = rate or 1.5
 	size = (size or 128)
-	local mpps = rate / size / 8
-	printf("Rate setting: %f", mpps)
+	printf("Rate setting: %f mpps", rate)
 	local rxMempool = memory.createMemPool()
 	if txPort == rxPort then
 		txDev = device.config(txPort, rxMempool, 2, 2)
@@ -27,7 +26,7 @@ function master(...)
 		rxDev = device.config(rxPort, rxMempool, 2, 1)
 		device.waitForLinks()
 	end
-	txDev:getTxQueue(1):setRate(rate)
+	txDev:getTxQueue(1):setRate(rate * size * 8)
 	dpdk.launchLua("timerSlave", txPort, rxPort, 0, 1, size, flows)
 	dpdk.launchLua("loadSlave", txPort, 1, size, flows)
 	dpdk.launchLua("counterSlave", rxPort, size)
