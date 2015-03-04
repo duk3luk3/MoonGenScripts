@@ -14,6 +14,8 @@ function master(...)
 	end
 	flows = flows or 4
 	rate = rate or 2000
+	local mpps = rate / 64 / 8
+	printf("Rate setting: %f", mpps)
 	size = (size or 128)
 	local rxMempool = memory.createMemPool()
 	if txPort == rxPort then
@@ -38,6 +40,9 @@ function loadSlave(port, queue, size, numFlows)
 		ts.fillPacket(buf, 1234, size)
 		local data = ffi.cast("uint8_t*", buf.pkt.data)
 		data[43] = 0x00 -- PTP version, set to 0 to disable timestamping for load packets
+		pkt.eth.src:setString("90:e2:ba:2c:cb:02") -- klaipeda eth-test1 MAC
+		pkt.eth.dst:setString("90:e2:ba:35:b5:81") -- tartu eth-test1 MAC
+		pkt.ip.dst:set(0xc0a80102) -- 192.168.1.2
 	end)
 	local lastPrint = dpdk.getTime()
 	local startTime = lastPrint
@@ -51,10 +56,7 @@ function loadSlave(port, queue, size, numFlows)
 		bufs:fill(size)
 		for i, buf in ipairs(bufs) do
 			local pkt = buf:getUdpPacket()
-			pkt.eth.src:setString("90:e2:ba:2c:cb:02") -- klaipeda eth-test1 MAC
-			pkt.eth.dst:setString("90:e2:ba:35:b5:81") -- tartu eth-test1 MAC
 			pkt.ip.src:set(baseIP + counter)
-			pkt.ip.dst:set(0xc0a80102) -- 192.168.1.2
 			if numFlows <= 32 then
 				-- this is significantly faster for small numbers
 				-- TODO: this optimization shouldn't be necessary...
