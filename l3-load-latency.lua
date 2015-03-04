@@ -14,7 +14,7 @@ function master(...)
 	end
 	flows = flows or 4
 	rate = rate or 1.5
-	size = (size or 128)
+	size = (size or 128) - 4
 	printf("Rate setting: %f mpps", rate)
 	local rxMempool = memory.createMemPool()
 	if txPort == rxPort then
@@ -108,7 +108,7 @@ function timerSlave(txPort, rxPort, txQueue, rxQueue, size, numFlows)
 	local counter = 0
 	local baseIP = 0xc0a80101 -- 192.168.1.1
 	while dpdk.running() do
-		bufs:fill(size + 4)
+		bufs:fill(size)
 		local pkt = bufs[1]:getUdpPacket()
 		ts.fillPacket(bufs[1], 1234, size)
 		pkt.eth.src:setString("90:e2:ba:2c:cb:02") -- klaipeda eth-test1 MAC
