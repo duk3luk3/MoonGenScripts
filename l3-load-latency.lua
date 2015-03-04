@@ -14,9 +14,9 @@ function master(...)
 	end
 	flows = flows or 4
 	rate = rate or 2000
-	local mpps = rate / 64 / 8
-	printf("Rate setting: %f", mpps)
 	size = (size or 128)
+	local mpps = rate / size / 8
+	printf("Rate setting: %f", mpps)
 	local rxMempool = memory.createMemPool()
 	if txPort == rxPort then
 		txDev = device.config(txPort, rxMempool, 2, 2)
