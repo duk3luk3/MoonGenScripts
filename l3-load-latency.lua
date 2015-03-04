@@ -77,6 +77,7 @@ function loadSlave(port, queue, size, numFlows)
 	end
 	local time = dpdk.getTime()
 	local mpps = (totalSent) / (time - startTime) / 10^6
+	dpdk.sleepMillis(500) -- let the histogram samples get out of the way
 	printf("TotalSent,packets=%d,rate=%f", totalSent, mpps)
 	--printf("Sent %d packets", totalSent)
 end
@@ -93,6 +94,7 @@ function counterSlave(port)
 		--printf("Received %d packets, current rate %.2f Mpps", total, pkts / elapsed / 10^6)
 		printf("Received,packets=%d,rate=%f", total, pkts / elapsed / 10^6)
 	end
+	dpdk.sleepMillis(500) -- let the histogram samples get out of the way
 	printf("TotalReceived,packets=%d", total)
 end
 
