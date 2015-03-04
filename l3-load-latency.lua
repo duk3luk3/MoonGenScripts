@@ -104,6 +104,8 @@ function timerSlave(txPort, rxPort, txQueue, rxQueue, size, numFlows)
 	local mem = memory.createMemPool()
 	local bufs = mem:bufArray(1)
 	local rxBufs = mem:bufArray(128)
+	local tsSent = 0
+	local tsReceived = 0
 	txQueue:enableTimestamps()
 	rxQueue:enableTimestamps(1234)
 	rxDev:filterTimestamps(rxQueue)
@@ -128,10 +130,12 @@ function timerSlave(txPort, rxPort, txQueue, rxQueue, size, numFlows)
 		-- increment the wait time when using large packets or slower links
 		local tx = txQueue:getTimestamp(100)
 		if tx then
+			tsSent = tsSent + 1
 			dpdk.sleepMicros(500) -- minimum latency to limit the packet rate
 			-- sent was successful, try to get the packet back (max. 10 ms wait time before we assume the packet is lost)
 			local rx = rxQueue:tryRecv(rxBufs, 10000)
 			if rx > 0 then
+				tsReceived = tsReceived + 1
 				local numPkts = 0
 				for i = 1, rx do
 					if bit.bor(rxBufs[i].ol_flags, dpdk.PKT_RX_IEEE1588_TMST) ~= 0 then
@@ -156,6 +160,8 @@ function timerSlave(txPort, rxPort, txQueue, rxQueue, size, numFlows)
 	local samples, sum, average = hist:totals()
 	local lowerQuart, median, upperQuart = hist:quartiles()
 	printf("HistStats,numSamples=%d,sum=%f,average=%f,lowerQuart=%f,median=%f,upperQuart=%f",samples,sum,average,lowerQuart,median,upperQuart)
+	printf("TimestampSent,packets=%d",tsSent)
+	printf("TimestampReceived,packets=%d",tsReceived)
 	io.stdout:flush()
 end
 
