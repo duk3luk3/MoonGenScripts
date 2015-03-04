@@ -40,6 +40,7 @@ function loadSlave(port, queue, size, numFlows)
 		data[43] = 0x00 -- PTP version, set to 0 to disable timestamping for load packets
 	end)
 	local lastPrint = dpdk.getTime()
+	local startTime = lastPrint
 	local totalSent = 0
 	local lastTotal = 0
 	local lastSent = 0
