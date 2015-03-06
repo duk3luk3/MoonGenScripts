@@ -14,7 +14,7 @@ function master(...)
 	end
 	flows = flows or 4
 	rate = rate or 1.5
-	size = (size or 128) - 4
+	size = (size or 128) - 4 -- 4 bytes off for crc
 	printf("Rate setting: %f mpps", rate)
 	local rxMempool = memory.createMemPool()
 	if txPort == rxPort then
@@ -76,17 +76,20 @@ end
 function counterSlave(port)
 	local dev = device.get(port)
 	local total = 0
+	local histo = hist:create()
 	while dpdk.running() do
 		local time = dpdk.getTime()
 		dpdk.sleepMillis(1000)
 		local elapsed = dpdk.getTime() - time
 		local pkts = dev:getRxStats(port)
+		hist:update(pkts / elapsed)
 		total = total + pkts
 		--printf("Received %d packets, current rate %.2f Mpps", total, pkts / elapsed / 10^6)
 		printf("Received,packets=%d,rate=%f", total, pkts / elapsed / 10^6)
 	end
+	local samples, sum, average = hist:totals()
 	dpdk.sleepMillis(500) -- let the histogram samples get out of the way
-	printf("TotalReceived,packets=%d", total)
+	printf("TotalReceived,packets=%d,rate=%f", total, average / 10^6)
 end
 
 function timerSlave(txPort, rxPort, txQueue, rxQueue, size, numFlows)
