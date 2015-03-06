@@ -26,14 +26,14 @@ function master(...)
 		rxDev = device.config(rxPort, rxMempool, 2, 1)
 		device.waitForLinks()
 	end
-	txDev:getTxQueue(1):setRate(rate * size * 8)
-	dpdk.launchLua("timerSlave", txPort, rxPort, 0, 1, size, flows)
-	dpdk.launchLua("loadSlave", txPort, 1, size, flows)
+	txDev:getTxQueue(1):setRate(rate * (size + 1) * 8)
+	dpdk.launchLua("timerSlave", txPort, rxPort, 0, 1, size)
+	dpdk.launchLua("loadSlave", txPort, 1, size)
 	dpdk.launchLua("counterSlave", rxPort, size)
 	dpdk.waitForSlaves()
 end
 
-function loadSlave(port, queue, size, numFlows)
+function loadSlave(port, queue, size)
 	local queue = device.get(port):getTxQueue(queue)
 	local mempool = memory.createMemPool(function(buf)
 		ts.fillPacket(buf, 1234, size)
@@ -92,7 +92,7 @@ function counterSlave(port)
 	printf("TotalReceived,packets=%d,rate=%f", total, average / 10^6)
 end
 
-function timerSlave(txPort, rxPort, txQueue, rxQueue, size, numFlows)
+function timerSlave(txPort, rxPort, txQueue, rxQueue, size)
 	local txDev = device.get(txPort)
 	local rxDev = device.get(rxPort)
 	local txQueue = txDev:getTxQueue(txQueue)
@@ -108,17 +108,14 @@ function timerSlave(txPort, rxPort, txQueue, rxQueue, size, numFlows)
 	local hist = histo:create()
 	-- wait one second, otherwise we might start timestamping before the load is applied
 	dpdk.sleepMillis(1000)
-	local counter = 0
-	local baseIP = 0xc0a80101 -- 192.168.1.1
 	while dpdk.running() do
 		bufs:fill(size)
 		local pkt = bufs[1]:getUdpPacket()
 		ts.fillPacket(bufs[1], 1234, size)
 		pkt.eth.src:setString("90:e2:ba:2c:cb:02") -- klaipeda eth-test1 MAC
 		pkt.eth.dst:setString("90:e2:ba:35:b5:81") -- tartu eth-test1 MAC
-		pkt.ip.src:set(baseIP + counter)
+		pkt.ip.src:set(0xc0a80101) -- 192.168.1.1
 		pkt.ip.dst:set(0xc0a80102) -- 192.168.1.2
-		counter = (counter + 1) % numFlows
 		bufs:offloadUdpChecksums()
 		-- sync clocks and send
 		ts.syncClocks(txDev, rxDev)
