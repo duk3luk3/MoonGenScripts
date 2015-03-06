@@ -76,7 +76,7 @@ end
 function counterSlave(port)
 	local dev = device.get(port)
 	local total = 0
-	local histo = hist:create()
+	local hist = histo:create()
 	while dpdk.running() do
 		local time = dpdk.getTime()
 		dpdk.sleepMillis(1000)
