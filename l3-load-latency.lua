@@ -152,6 +152,10 @@ function timerSlave(txPort, rxPort, txQueue, rxQueue, size)
 	end
 	local samples, sum, average = hist:totals()
 	local lowerQuart, median, upperQuart = hist:quartiles()
+	average = average or 0
+	lowerQuart = lowerQuart or 0
+	median = median or 0
+	upperQuart = upperQuart or 0
 	printf("HistStats,numSamples=%d,sum=%f,average=%f,lowerQuart=%f,median=%f,upperQuart=%f",samples,sum,average,lowerQuart,median,upperQuart)
 	printf("TimestampSent,packets=%d",tsSent)
 	printf("TimestampReceived,packets=%d",tsReceived)
