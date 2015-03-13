@@ -25,7 +25,7 @@ function master(...)
 		rxDev = device.config(rxPort, rxMempool, 1, 0)
 		device.waitForLinks()
 	end
-	dpdk.launchLua("timerSlave", txPort, rxPort, 0, 1, rate, size)
+	dpdk.launchLua("timerSlave", txPort, rxPort, 0, 0, rate, size)
 	dpdk.waitForSlaves()
 end
 
@@ -41,6 +41,7 @@ function timerSlave(txPort, rxPort, txQueue, rxQueue, rate, size)
 	local tsReceived = 0
 	-- convert mpps rate into us inter-packet delay
 	rate = 1 / rate
+	printf("packet interval: %fus", rate)
 	txQueue:enableTimestamps()
 	rxQueue:enableTimestamps(1234)
 	rxDev:filterTimestamps(rxQueue)
