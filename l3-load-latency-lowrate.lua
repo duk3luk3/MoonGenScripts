@@ -74,8 +74,8 @@ function timerSlave(txPort, rxPort, txQueue, rxQueue, rate, size)
 						numPkts = numPkts + 1
 					end
 				end
-				local delay = (rxQueue:getTimestamp() - tx) * 6.4
 				if numPkts == 1 then
+					local delay = (rxQueue:getTimestamp() - tx) * 6.4
 					if delay > 0 and delay < 100000000 then
 						hist:update(delay)
 					end
