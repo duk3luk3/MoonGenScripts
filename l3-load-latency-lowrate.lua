@@ -8,12 +8,13 @@ local ffi		= require "ffi"
 local histo = require "histogram"
 
 function master(...)
-	local txPort, rxPort, rate, size = tonumberall(...)
+	local txPort, rxPort, rate, size, phisto = tonumberall(...)
 	if not txPort or not rxPort then
 		errorf("usage: txPort rxPort [rate [size]]]")
 	end
 	rate = rate or 0.1
 	size = (size or 128) - 4 -- 4 bytes off for crc
+	phisto = phisto or 0
 	printf("Rate setting: %f mpps", rate)
 	local rxMempool = memory.createMemPool()
 	if txPort == rxPort then
@@ -25,11 +26,11 @@ function master(...)
 		rxDev = device.config(rxPort, rxMempool, 1, 0)
 		device.waitForLinks()
 	end
-	dpdk.launchLua("timerSlave", txPort, rxPort, 0, 0, rate, size)
+	dpdk.launchLua("timerSlave", txPort, rxPort, 0, 0, rate, size, phisto)
 	dpdk.waitForSlaves()
 end
 
-function timerSlave(txPort, rxPort, txQueue, rxQueue, rate, size)
+function timerSlave(txPort, rxPort, txQueue, rxQueue, rate, size, phisto)
 	local txDev = device.get(txPort)
 	local rxDev = device.get(rxPort)
 	local txQueue = txDev:getTxQueue(txQueue)
@@ -85,8 +86,10 @@ function timerSlave(txPort, rxPort, txQueue, rxQueue, rate, size)
 			end
 		end
 	end
-	for v, k in hist:samples() do
-		printf("HistSample,delay=%f,count=%d", v.k, v.v)
+	if phisto != 0 then
+		for v, k in hist:samples() do
+			printf("HistSample,delay=%f,count=%d", v.k, v.v)
+		end
 	end
 	local samples, sum, average = hist:totals()
 	local lowerQuart, median, upperQuart = hist:quartiles()
