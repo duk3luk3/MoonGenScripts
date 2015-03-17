@@ -64,7 +64,7 @@ function timerSlave(txPort, rxPort, txQueue, rxQueue, rate, size, phisto)
 		local tx = txQueue:getTimestamp(100)
 		if tx then
 			tsSent = tsSent + 1
-			dpdk.sleepMicros(rate) -- rate limiting
+			dpdk.sleepMicros(poissonDelay(rate)) -- rate limiting
 			-- sent was successful, try to get the packet back (max. 100 us wait time before we assume the packet is lost)
 			local rx = rxQueue:tryRecv(rxBufs, 100)
 			if rx > 0 then
@@ -86,7 +86,7 @@ function timerSlave(txPort, rxPort, txQueue, rxQueue, rate, size, phisto)
 			end
 		end
 	end
-	if phisto != 0 then
+	if phisto ~= 0 then
 		for v, k in hist:samples() do
 			printf("HistSample,delay=%f,count=%d", v.k, v.v)
 		end
