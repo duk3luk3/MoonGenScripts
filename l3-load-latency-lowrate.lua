@@ -8,13 +8,17 @@ local ffi		= require "ffi"
 local histo = require "histogram"
 
 function master(...)
-	local txPort, rxPort, rate, size, phisto = tonumberall(...)
+	local txPort, rxPort, rate, size, phisto, srcmac, dstmac = ...
+	txPort = tonumber(txPort) or nil
+	rxPort = tonumber(rxPort) or nil
 	if not txPort or not rxPort then
 		errorf("usage: txPort rxPort [rate [size]]]")
 	end
-	rate = rate or 0.1
-	size = (size or 128) - 4 -- 4 bytes off for crc
-	phisto = phisto or 0
+	rate = tonumber(rate) or 0.01
+	size = (tonumber(size) or 128) - 4 -- 4 bytes off for crc
+	phisto = tonumber(phisto) or 0
+	srcmac = srcmac or "90:e2:ba:2c:cb:02" -- klaipeda eth-test1 MAC
+	dstmac = dstmac or "90:e2:ba:35:b5:81" -- tartu eth-test1 MAC
 	printf("Rate setting: %f mpps", rate)
 	local rxMempool = memory.createMemPool()
 	if txPort == rxPort then
@@ -26,11 +30,11 @@ function master(...)
 		rxDev = device.config(rxPort, rxMempool, 1, 0)
 		device.waitForLinks()
 	end
-	dpdk.launchLua("timerSlave", txPort, rxPort, 0, 0, rate, size, phisto)
+	dpdk.launchLua("timerSlave", txPort, rxPort, 0, 0, rate, size, phisto, srcmac, dstmac)
 	dpdk.waitForSlaves()
 end
 
-function timerSlave(txPort, rxPort, txQueue, rxQueue, rate, size, phisto)
+function timerSlave(txPort, rxPort, txQueue, rxQueue, rate, size, phisto, srcmac, dstmac)
 	local txDev = device.get(txPort)
 	local rxDev = device.get(rxPort)
 	local txQueue = txDev:getTxQueue(txQueue)
@@ -52,8 +56,8 @@ function timerSlave(txPort, rxPort, txQueue, rxQueue, rate, size, phisto)
 		bufs:fill(size)
 		local pkt = bufs[1]:getUdpPacket()
 		ts.fillPacket(bufs[1], 1234, size)
-		pkt.eth.src:setString("90:e2:ba:2c:cb:02") -- klaipeda eth-test1 MAC
-		pkt.eth.dst:setString("90:e2:ba:35:b5:81") -- tartu eth-test1 MAC
+		pkt.eth.src:setString(srcmac)
+		pkt.eth.dst:setString(dstmac)
 		pkt.ip.src:set(0xc0a80101) -- 192.168.1.1
 		pkt.ip.dst:set(0xc0a80102) -- 192.168.1.2
 		bufs:offloadUdpChecksums()
