@@ -53,7 +53,7 @@ function timerSlave(txPort, rxPort, txQueue, rxQueue, rate, size, phisto, srcmac
 	local hist = histo:create()
 	local startTime = dpdk.getTime()
 	while dpdk.running() do
-		bufs:fill(size)
+		bufs:alloc(size)
 		local pkt = bufs[1]:getUdpPacket()
 		ts.fillPacket(bufs[1], 1234, size)
 		pkt.eth.src:setString(srcmac)

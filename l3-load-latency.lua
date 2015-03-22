@@ -53,7 +53,7 @@ function loadSlave(port, queue, size)
 	local bufs = mempool:bufArray(1)
 	local counter = 0
 	while dpdk.running() do
-		bufs:fill(size)
+		bufs:alloc(size)
 		-- UDP checksums are optional, so using just IPv4 checksums would be sufficient here
 		bufs:offloadUdpChecksums()
 		totalSent = totalSent + queue:send(bufs)
@@ -109,7 +109,7 @@ function timerSlave(txPort, rxPort, txQueue, rxQueue, size)
 	-- wait one second, otherwise we might start timestamping before the load is applied
 	dpdk.sleepMillis(1000)
 	while dpdk.running() do
-		bufs:fill(size)
+		bufs:alloc(size)
 		local pkt = bufs[1]:getUdpPacket()
 		ts.fillPacket(bufs[1], 1234, size)
 		pkt.eth.src:setString("90:e2:ba:2c:cb:02") -- klaipeda eth-test1 MAC
