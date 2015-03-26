@@ -26,14 +26,13 @@ function master(...)
 		rxDev = device.config(rxPort, rxMempool, 2, 1)
 		device.waitForLinks()
 	end
-	txDev:getTxQueue(1):setRate(rate * (size + 4) * 8)
 	dpdk.launchLua("timerSlave", txPort, rxPort, 0, 1, size)
-	dpdk.launchLua("loadSlave", txPort, 1, size)
+	dpdk.launchLua("loadSlave", txPort, 1, size, rate)
 	dpdk.launchLua("counterSlave", rxPort, size)
 	dpdk.waitForSlaves()
 end
 
-function loadSlave(port, queue, size)
+function loadSlave(port, queue, size, rate)
 	local queue = device.get(port):getTxQueue(queue)
 	local mempool = memory.createMemPool(function(buf)
 		ts.fillPacket(buf, 1234, size)
