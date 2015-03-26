@@ -8,13 +8,14 @@ local ffi		= require "ffi"
 local histo = require "histogram"
 
 function master(...)
-	local txPort, rxPort, rate, flows, size = tonumberall(...)
+	local txPort, rxPort, rate, size, phisto, srcmac, dstmac = tonumberall(...)
 	if not txPort or not rxPort then
-		errorf("usage: txPort rxPort [rate [flows [size]]]")
+		errorf("usage: txPort rxPort [rate [size]]")
 	end
-	flows = flows or 4
-	rate = rate or 1.5
-	size = (size or 128) - 4 -- 4 bytes off for crc
+	rate = tonumber(rate) or 1.5
+	size = (tonumber(size) or 128) - 4 -- 4 bytes off for crc
+	srcmac = srcmac or "90:e2:ba:2c:cb:02" -- klaipeda eth-test1 MAC
+	dstmac = dstmac or "90:e2:ba:35:b5:81" -- tartu eth-test1 MAC
 	printf("Rate setting: %f mpps", rate)
 	local rxMempool = memory.createMemPool()
 	if txPort == rxPort then
@@ -32,15 +33,15 @@ function master(...)
 	dpdk.waitForSlaves()
 end
 
-function loadSlave(port, queue, size, rate)
+function loadSlave(port, queue, size, rate, srcmac, dstmac)
 	local queue = device.get(port):getTxQueue(queue)
 	local mempool = memory.createMemPool(function(buf)
 		ts.fillPacket(buf, 1234, size)
 		local data = ffi.cast("uint8_t*", buf.pkt.data)
 		data[43] = 0x00 -- PTP version, set to 0 to disable timestamping for load packets
 		local pkt = buf:getUdpPacket()
-		pkt.eth.src:setString("90:e2:ba:2c:cb:02") -- klaipeda eth-test1 MAC
-		pkt.eth.dst:setString("90:e2:ba:35:b5:81") -- tartu eth-test1 MAC
+		pkt.eth.src:setString(srcmac)
+		pkt.eth.dst:setString(dstmac)
 		pkt.ip.dst:set(0xc0a80102) -- 192.168.1.2
 		pkt.ip.src:set(0xc0a80101) -- 192.168.1.1
 	end)
@@ -95,7 +96,7 @@ function counterSlave(port)
 	printf("TotalReceived,packets=%d,rate=%f", total, average / 10^6)
 end
 
-function timerSlave(txPort, rxPort, txQueue, rxQueue, size)
+function timerSlave(txPort, rxPort, txQueue, rxQueue, size, phisto, srcmac, dstmac)
 	local txDev = device.get(txPort)
 	local rxDev = device.get(rxPort)
 	local txQueue = txDev:getTxQueue(txQueue)
@@ -115,8 +116,8 @@ function timerSlave(txPort, rxPort, txQueue, rxQueue, size)
 		bufs:alloc(size)
 		local pkt = bufs[1]:getUdpPacket()
 		ts.fillPacket(bufs[1], 1234, size)
-		pkt.eth.src:setString("90:e2:ba:2c:cb:02") -- klaipeda eth-test1 MAC
-		pkt.eth.dst:setString("90:e2:ba:35:b5:81") -- tartu eth-test1 MAC
+		pkt.eth.src:setString(srcmac)
+		pkt.eth.dst:setString(dstmac)
 		pkt.ip.src:set(0xc0a80101) -- 192.168.1.1
 		pkt.ip.dst:set(0xc0a80102) -- 192.168.1.2
 		bufs:offloadUdpChecksums()
@@ -150,8 +151,10 @@ function timerSlave(txPort, rxPort, txQueue, rxQueue, size)
 			end
 		end
 	end
-	for v, k in hist:samples() do
-		printf("HistSample,delay=%f,count=%d", v.k, v.v)
+	if phisto ~= 0 then
+		for v, k in hist:samples() do
+			printf("HistSample,delay=%f,count=%d", v.k, v.v)
+		end
 	end
 	local samples, sum, average = hist:totals()
 	local lowerQuart, median, upperQuart = hist:quartiles()
