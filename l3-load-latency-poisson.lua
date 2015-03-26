@@ -8,7 +8,7 @@ local ffi		= require "ffi"
 local histo = require "histogram"
 
 function master(...)
-	local txPort, rxPort, rate, size, phisto, srcmac, dstmac = tonumberall(...)
+	local txPort, rxPort, rate, size, phisto, srcmac, dstmac = ...
 	if not txPort or not rxPort then
 		errorf("usage: txPort rxPort [rate [size]]")
 	end
