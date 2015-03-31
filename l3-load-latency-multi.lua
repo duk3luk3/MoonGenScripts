@@ -35,7 +35,7 @@ function master(...)
 	dpdk.waitForSlaves()
 end
 
-function loadSlave(port, queue, size, srcmac, dstmac, flows)
+function loadSlave(port, queue, size, srcmac, dstmac, numFlows)
 	local queue = device.get(port):getTxQueue(queue)
 	local mempool = memory.createMemPool(function(buf)
 		ts.fillPacket(buf, 1234, size)
