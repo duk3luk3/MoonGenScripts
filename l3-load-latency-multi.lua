@@ -45,7 +45,7 @@ function loadSlave(port, queue, size, srcmac, dstmac, numFlows)
 		pkt.eth.src:setString(srcmac) -- klaipeda eth-test1 MAC
 		pkt.eth.dst:setString(dstmac) -- tartu eth-test1 MAC
 		pkt.ip.dst:set(0xc0a80102) -- 192.168.1.2
-		pkt.ip.src:set(0xc0a80101) -- 192.168.1.1
+		pkt.ip.src:set(0xc0a80101 + math.random(numFlows)) -- 192.168.1.1
 	end)
 	local lastPrint = dpdk.getTime()
 	local startTime = lastPrint
@@ -57,17 +57,6 @@ function loadSlave(port, queue, size, srcmac, dstmac, numFlows)
 	local counter = 0
 	while dpdk.running() do
 		bufs:alloc(size)
-		for i, buf in ipairs(bufs) do
-			local pkt = buf:getUdpPacket()
-			pkt.ip.src:set(baseIP + counter)
-			if numFlows <= 32 then
-				-- this is significantly faster for small numbers
-				-- TODO: this optimization shouldn't be necessary...
-				counter = (counter + 1) % numFlows
-			else
-				counter = counter == numFlows and 0 or counter + 1
-			end
-		end
 		-- UDP checksums are optional, so using just IPv4 checksums would be sufficient here
 		bufs:offloadUdpChecksums()
 		totalSent = totalSent + queue:send(bufs)
