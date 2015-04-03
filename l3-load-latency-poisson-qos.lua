@@ -66,7 +66,9 @@ function loadSlave(port, queue, size, rate, bgratio, srcmac, dstmac)
 			buf:setDelay(poissonDelay(10^10 / 8 / (rate * 10^6) - size - 24))
 			-- randomize port for qos / bg traffic
 			local pkt = buf:getUdpPacket()
-			pkt.udp:setDstPort(math.random() <= bgratio and qsport or bgport)
+			local udpPort = math.random() <= bgratio and qsport or bgport
+			pkt.udp:setDstPort(udpPort)
+			pkt.udp:setDrcPort(udpPort)
 			end
 
 		totalSent = totalSent + queue:sendWithDelay(bufs)
@@ -124,14 +126,16 @@ function timerSlave(txPort, rxPort, txQueue, rxQueue, size, phisto, bgratio, src
 	while dpdk.running() do
 		bufs:alloc(size)
 		local pkt = bufs[1]:getUdpPacket()
-		local port, ahist = unpack(math.random() <= bgratio and {qsport, hist} or {bgport, bghist})
-		rxQueue:enableTimestamps(port)
+		local udpPort, ahist = unpack(math.random() <= bgratio and {qsport, hist} or {bgport, bghist})
+		rxQueue:enableTimestamps(udpPort)
 
 		ts.fillPacket(bufs[1], port, size)
 		pkt.eth.src:setString(srcmac)
 		pkt.eth.dst:setString(dstmac)
 		pkt.ip.src:set(0xc0a80101) -- 192.168.1.1
 		pkt.ip.dst:set(0xc0a80102) -- 192.168.1.2
+		pkt.udp:setDstPort(udpPort)
+		pkt.udp:setDrcPort(udpPort)
 		bufs:offloadUdpChecksums()
 		-- sync clocks and send
 		ts.syncClocks(txDev, rxDev)
