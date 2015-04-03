@@ -68,7 +68,7 @@ function loadSlave(port, queue, size, rate, bgratio, srcmac, dstmac)
 			local pkt = buf:getUdpPacket()
 			local udpPort = math.random() <= bgratio and qsport or bgport
 			pkt.udp:setDstPort(udpPort)
-			pkt.udp:setDrcPort(udpPort)
+			pkt.udp:setSrcPort(udpPort)
 			end
 
 		totalSent = totalSent + queue:sendWithDelay(bufs)
@@ -135,7 +135,7 @@ function timerSlave(txPort, rxPort, txQueue, rxQueue, size, phisto, bgratio, src
 		pkt.ip.src:set(0xc0a80101) -- 192.168.1.1
 		pkt.ip.dst:set(0xc0a80102) -- 192.168.1.2
 		pkt.udp:setDstPort(udpPort)
-		pkt.udp:setDrcPort(udpPort)
+		pkt.udp:setSrcPort(udpPort)
 		bufs:offloadUdpChecksums()
 		-- sync clocks and send
 		ts.syncClocks(txDev, rxDev)
