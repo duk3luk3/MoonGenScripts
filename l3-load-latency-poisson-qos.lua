@@ -113,7 +113,6 @@ function timerSlave(txPort, rxPort, txQueue, rxQueue, size, phisto, bgratio, src
 	local tsSent = 0
 	local tsReceived = 0
 	txQueue:enableTimestamps()
-	rxQueue:enableTimestamps(1234)
 	rxDev:filterTimestamps(rxQueue)
 	local hist = histo:create()
 	local bghist = histo:create()
@@ -123,6 +122,7 @@ function timerSlave(txPort, rxPort, txQueue, rxQueue, size, phisto, bgratio, src
 		bufs:alloc(size)
 		local pkt = bufs[1]:getUdpPacket()
 		local port, ahist = unpack(math.random() <= bgratio and {1234, hist} or {2345, bghist})
+		rxQueue:enableTimestamps(port)
 
 		ts.fillPacket(bufs[1], port, size)
 		pkt.eth.src:setString(srcmac)
