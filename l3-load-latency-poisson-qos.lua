@@ -129,7 +129,7 @@ function timerSlave(txPort, rxPort, txQueue, rxQueue, size, phisto, bgratio, src
 		local udpPort, ahist = unpack(math.random() <= bgratio and {qsport, hist} or {bgport, bghist})
 		rxQueue:enableTimestamps(udpPort)
 
-		ts.fillPacket(bufs[1], port, size)
+		ts.fillPacket(bufs[1], udpPort, size)
 		pkt.eth.src:setString(srcmac)
 		pkt.eth.dst:setString(dstmac)
 		pkt.ip.src:set(0xc0a80101) -- 192.168.1.1
