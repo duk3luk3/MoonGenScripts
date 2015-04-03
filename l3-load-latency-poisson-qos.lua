@@ -122,7 +122,7 @@ function timerSlave(txPort, rxPort, txQueue, rxQueue, size, phisto, bgratio, src
 	while dpdk.running() do
 		bufs:alloc(size)
 		local pkt = bufs[1]:getUdpPacket()
-		local port, ahist = math.random() <= bgratio and 1234,hist or 2345,bghist
+		local port, ahist = unpack(math.random() <= bgratio and {1234, hist} or {2345, bghist})
 
 		ts.fillPacket(bufs[1], port, size)
 		pkt.eth.src:setString(srcmac)
