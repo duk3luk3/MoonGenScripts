@@ -63,7 +63,7 @@ function loadSlave(port, queue, size, rate, bgratio, srcmac, dstmac)
 			buf:setDelay(poissonDelay(10^10 / 8 / (rate * 10^6) - size - 24))
 			-- randomize port for qos / bg traffic
 			local pkt = buf:getUdpPacket()
-			pkt.udp.dst = math.random() <= bgratio and 1234 or 2345
+			pkt.udp:setDstPort(math.random() <= bgratio and 1234 or 2345)
 			end
 
 		totalSent = totalSent + queue:sendWithDelay(bufs)
