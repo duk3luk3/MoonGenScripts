@@ -7,6 +7,9 @@ local filter	= require "filter"
 local ffi		= require "ffi"
 local histo = require "histogram"
 
+local qsport = 1234
+local bgport = 2345
+
 function master(...)
 	local txPort, rxPort, rate, size, phisto, bgratio, srcmac, dstmac = ...
 	if not txPort or not rxPort then
@@ -63,7 +66,7 @@ function loadSlave(port, queue, size, rate, bgratio, srcmac, dstmac)
 			buf:setDelay(poissonDelay(10^10 / 8 / (rate * 10^6) - size - 24))
 			-- randomize port for qos / bg traffic
 			local pkt = buf:getUdpPacket()
-			pkt.udp:setDstPort(math.random() <= bgratio and 1234 or 2345)
+			pkt.udp:setDstPort(math.random() <= bgratio and qsport or bgport)
 			end
 
 		totalSent = totalSent + queue:sendWithDelay(bufs)
@@ -121,7 +124,7 @@ function timerSlave(txPort, rxPort, txQueue, rxQueue, size, phisto, bgratio, src
 	while dpdk.running() do
 		bufs:alloc(size)
 		local pkt = bufs[1]:getUdpPacket()
-		local port, ahist = unpack(math.random() <= bgratio and {1234, hist} or {2345, bghist})
+		local port, ahist = unpack(math.random() <= bgratio and {qsport, hist} or {bgport, bghist})
 		rxQueue:enableTimestamps(port)
 
 		ts.fillPacket(bufs[1], port, size)
