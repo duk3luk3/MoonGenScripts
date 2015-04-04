@@ -6,6 +6,7 @@ local dpdkc		= require "dpdkc"
 local filter	= require "filter"
 local ffi		= require "ffi"
 local histo = require "histogram"
+local stats = require "stats"
 
 local qsport = 1234
 local bgport = 2345
@@ -34,7 +35,7 @@ function master(...)
 	end
 	dpdk.launchLua("timerSlave", txPort, rxPort, 0, 1, size, phisto, bgratio, srcmac, dstmac)
 	dpdk.launchLua("loadSlave", txPort, 1, size, rate, bgratio, srcmac, dstmac)
-	dpdk.launchLua("counterSlave", rxPort, size)
+	dpdk.launchLua("counterSlave", rxDev:getRxQueue(0))
 	dpdk.waitForSlaves()
 end
 
@@ -88,23 +89,38 @@ function loadSlave(port, queue, size, rate, bgratio, srcmac, dstmac)
 	--printf("Sent %d packets", totalSent)
 end
 
-function counterSlave(port)
-	local dev = device.get(port)
-	local total = 0
-	local hist = histo:create()
-	while dpdk.running() do
-		local time = dpdk.getTime()
-		dpdk.sleepMillis(1000)
-		local elapsed = dpdk.getTime() - time
-		local pkts = dev:getRxStats(port)
-		hist:update(pkts / elapsed)
-		total = total + pkts
-		--printf("Received %d packets, current rate %.2f Mpps", total, pkts / elapsed / 10^6)
-		printf("Received,packets=%d,rate=%f", total, pkts / elapsed / 10^6)
+function counterSlave(queue)
+	-- the simplest way to count packets is by receiving them all
+	-- an alternative would be using flow director to filter packets by port and use the queue statistics
+	-- however, the current implementation is limited to filtering timestamp packets
+	-- (changing this wouldn't be too complicated, have a look at filter.lua if you want to implement this)
+	-- however, queue statistics are also not yet implemented and the DPDK abstraction is somewhat annoying
+	local bufs = memory.bufArray()
+	local ctrs = {}
+	while dpdk.running(100) do
+		local rx = queue:recv(bufs)
+		for i = 1, rx do
+			local buf = bufs[i]
+			local pkt = buf:getUdpPacket()
+			local port = pkt.udp:getDstPort()
+			local ctr = ctrs[port]
+			if not ctr then
+				ctr = stats:newPktRxCounter("Port" .. port, "ini")
+				ctrs[port] = ctr
+			end
+			ctr:countPacket(buf)
+		end
+		-- update() on rxPktCounters must be called to print statistics periodically
+		-- this is not done in countPacket() for performance reasons (needs to check timestamps)
+		for k, v in pairs(ctrs) do
+			v:update()
+		end
+		bufs:freeAll()
 	end
-	local samples, sum, average = hist:totals()
-	dpdk.sleepMillis(500) -- let the histogram samples get out of the way
-	printf("TotalReceived,packets=%d,rate=%f", total, average / 10^6)
+	for k, v in pairs(ctrs) do
+		v:finalize()
+	end
+	-- TODO: check the queue's overflow counter to detect lost packets
 end
 
 function timerSlave(txPort, rxPort, txQueue, rxQueue, size, phisto, bgratio, srcmac, dstmac)
