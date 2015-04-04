@@ -97,6 +97,8 @@ function counterSlave(queue)
 	-- however, queue statistics are also not yet implemented and the DPDK abstraction is somewhat annoying
 	local bufs = memory.bufArray()
 	local ctrs = {}
+	ctrs[1234] = stats:newPktRxCounter("Qos", "ini")
+	ctrs[2345] = stats:newPktRxCounter("Bg", "ini")
 	while dpdk.running(100) do
 		local rx = queue:recv(bufs)
 		for i = 1, rx do
