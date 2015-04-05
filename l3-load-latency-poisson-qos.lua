@@ -54,6 +54,8 @@ function loadSlave(port, queue, size, rate, bgratio, srcmac, dstmac)
 	local lastPrint = dpdk.getTime()
 	local startTime = lastPrint
 	local totalSent = 0
+	local totalQos = 0
+	local totalBg = 0
 	local lastTotal = 0
 	local lastSent = 0
 	local bufs = mempool:bufArray(128)
@@ -68,6 +70,11 @@ function loadSlave(port, queue, size, rate, bgratio, srcmac, dstmac)
 			-- randomize port for qos / bg traffic
 			local pkt = buf:getUdpPacket()
 			local udpPort = math.random() <= bgratio and qsport or bgport
+			if udpPort == qsport then
+				totalQos = totalQos + 1
+			else
+				totalBg = totalBg + 1
+			end
 			pkt.udp:setDstPort(udpPort)
 			pkt.udp:setSrcPort(udpPort)
 			end
@@ -84,8 +91,12 @@ function loadSlave(port, queue, size, rate, bgratio, srcmac, dstmac)
 	end
 	local time = dpdk.getTime()
 	local mpps = (totalSent) / (time - startTime) / 10^6
+	local qosrate = (totalQos) / (time - startTime) / 10^6
+	local bgrate = (totalBg) / (time - startTime) / 10^6
 	dpdk.sleepMillis(500) -- let the histogram samples get out of the way
 	printf("TotalSent,packets=%d,rate=%f", totalSent, mpps)
+	printf("QosTotalSent,packets=%d,rate=%f", totalQos, qosrate)
+	printf("BgTotalSent,packets=%d,rate=%f", totalBg, bgrate)
 	--printf("Sent %d packets", totalSent)
 end
 
