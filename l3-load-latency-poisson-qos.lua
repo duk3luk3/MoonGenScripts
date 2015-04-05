@@ -33,7 +33,7 @@ function master(...)
 		rxDev = device.config(rxPort, rxMempool, 2, 1)
 		device.waitForLinks()
 	end
-	dpdk.launchLua("timerSlave", txPort, rxPort, 0, 1, size, phisto, bgratio, srcmac, dstmac)
+	dpdk.launchLua("timerSlave", txPort, rxPort, 0, 1, size, phisto, rate, bgratio, srcmac, dstmac)
 	dpdk.launchLua("loadSlave", txPort, 1, size, rate, bgratio, srcmac, dstmac)
 	dpdk.launchLua("counterSlave", rxDev:getRxQueue(0))
 	dpdk.waitForSlaves()
@@ -136,7 +136,7 @@ function counterSlave(queue)
 	-- TODO: check the queue's overflow counter to detect lost packets
 end
 
-function timerSlave(txPort, rxPort, txQueue, rxQueue, size, phisto, bgratio, srcmac, dstmac)
+function timerSlave(txPort, rxPort, txQueue, rxQueue, size, phisto, rate, bgratio, srcmac, dstmac)
 	local txDev = device.get(txPort)
 	local rxDev = device.get(rxPort)
 	local txQueue = txDev:getTxQueue(txQueue)
@@ -173,7 +173,7 @@ function timerSlave(txPort, rxPort, txQueue, rxQueue, size, phisto, bgratio, src
 		local tx = txQueue:getTimestamp(100)
 		if tx then
 			tsSent = tsSent + 1
-			dpdk.sleepMicros(5000) -- minimum latency to limit the packet rate
+			dpdk.sleepMicros(1/rate * 0.01) -- minimum latency to limit the packet rate
 			-- sent was successful, try to get the packet back (max. 10 ms wait time before we assume the packet is lost)
 			local rx = rxQueue:tryRecv(rxBufs, 10000)
 			if rx > 0 then
