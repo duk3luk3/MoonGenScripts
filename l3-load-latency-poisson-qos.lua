@@ -18,8 +18,8 @@ function master(...)
 	end
 	rate = tonumber(rate) or 1.5
 	size = (tonumber(size) or 128) - 4 -- 4 bytes off for crc
-  phisto = tonumber(phisto) or 1
-	ratio = tonumber(ratio) or 0.75
+	phisto = tonumber(phisto) or 1
+	bgratio = tonumber(bgratio) or 0.75
 	srcmac = srcmac or "90:e2:ba:2c:cb:02" -- klaipeda eth-test1 MAC
 	dstmac = dstmac or "90:e2:ba:35:b5:81" -- tartu eth-test1 MAC
 	printf("Rate setting: %f mpps", rate)
@@ -33,8 +33,11 @@ function master(...)
 		rxDev = device.config(rxPort, rxMempool, 2, 1)
 		device.waitForLinks()
 	end
+	--TimerSlave gets TXQueue 0 and RXQueue 1
 	dpdk.launchLua("timerSlave", txPort, rxPort, 0, 1, size, phisto, rate, bgratio, srcmac, dstmac)
+	--LoadSlave gets TXQueue 1
 	dpdk.launchLua("loadSlave", txPort, 1, size, rate, bgratio, srcmac, dstmac)
+	--CounterSlave gets RXQueue 0
 	dpdk.launchLua("counterSlave", rxDev:getRxQueue(0))
 	dpdk.waitForSlaves()
 end
