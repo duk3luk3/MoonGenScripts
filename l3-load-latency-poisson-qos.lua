@@ -187,9 +187,10 @@ function timerSlave(txPort, rxPort, txQueue, rxQueue, size, phisto, rate, bgrati
 						numPkts = numPkts + 1
 					end
 				end
-				local delay = (rxQueue:getTimestamp() - tx) * 6.4
-				if numPkts == 1 then
+				local ts = rxQueue:getTimestamp()
+				if numPkts == 1 and ts then
 					if delay > 0 and delay < 100000000 then
+						local delay = (ts - tx) * 6.4
 						--hist[delay] = (hist[delay] or 0) + 1
 						ahist:update(delay)
 					end
