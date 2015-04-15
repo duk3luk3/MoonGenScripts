@@ -72,7 +72,7 @@ function loadSlave(port, queue, size, rate, bgratio, srcmac, dstmac)
 			buf:setDelay(poissonDelay(10^10 / 8 / (rate * 10^6) - size - 24))
 			-- randomize port for qos / bg traffic
 			local pkt = buf:getUdpPacket()
-			local udpPort = math.random() <= bgratio and qsport or bgport
+			local udpPort = math.random() > bgratio and qsport or bgport
 			if udpPort == qsport then
 				totalQos = totalQos + 1
 			else
@@ -158,7 +158,7 @@ function timerSlave(txPort, rxPort, txQueue, rxQueue, size, phisto, rate, bgrati
 	while dpdk.running() do
 		bufs:alloc(size)
 		local pkt = bufs[1]:getUdpPacket()
-		local udpPort, ahist = unpack(math.random() <= bgratio and {qsport, hist} or {bgport, bghist})
+		local udpPort, ahist = unpack(math.random() > bgratio and {qsport, hist} or {bgport, bghist})
 		rxQueue:enableTimestamps(udpPort)
 
 		ts.fillPacket(bufs[1], udpPort, size)
